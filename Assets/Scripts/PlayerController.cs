@@ -1,108 +1,129 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using DG.Tweening;
-using TMPro;
 
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
-    Rigidbody rb;
-    PlayerInput pi;
+    private Rigidbody rb;
+    private PlayerInput pi;
 
+    [Header("Cámara")]
     public Camera camara;
     public GameObject cameraReference;
+    public float sencibilidad = 10f;
     private float CamRotationY;
 
-    public float sencibilidad = 10;
-    public bool volteada;
+    [Header("Movimiento y Gravedad Personal")]
     public float speed = 8.5f;
-
     public float gravedad = 9.81f;
+    public bool volteada;
 
-    public bool palancaCol;
-    private MapRoating map;
-    public GameObject InteractPanel;
+    private LevelController levelController;
+    private bool palancaCol;
 
-    void Start()
+    private void Start()
     {
         rb = GetComponent<Rigidbody>();
         pi = GetComponent<PlayerInput>();
-        map = GetComponent<MapRoating>();
+
         rb.useGravity = false;
-        InteractPanel.SetActive(false);
+        Application.targetFrameRate = 60;
+
+        levelController = FindObjectOfType<LevelController>();
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
+        DetectarPalanca();
 
-        palancaCol = Physics.Raycast(camara.transform.position, camara.transform.forward, 2f, LayerMask.GetMask("Palanca"));
-        Debug.DrawLine(camara.transform.position, camara.transform.position + (camara.transform.forward * 2f), palancaCol ? Color.green : Color.red);
+        ControlCamera();
+        ControlMovement();
 
-
-        Camera();
-        MOV();
-
-        
-
+        // RB: Cambiar gravedad del personaje
         if (pi.actions["InvertPlayer"].WasPressedThisFrame())
         {
-            float angulo = volteada ? 0 : 180f;
-
-            gravedad = gravedad * -1;
-            transform.DORotate(new Vector3(0, 0, angulo), 0.8f);
-
-            if (volteada)
-            {
-                volteada = false;
-            }
-            else
-            {
-                volteada = true;
-            }
-
+            InvertirGravedadPropia();
         }
-        if (palancaCol) {InteractPanel.SetActive(true);} else { InteractPanel.SetActive(false); }
+
+        // Interacción con elementos del Stage actual
         if (palancaCol && pi.actions["Interact"].WasPressedThisFrame())
         {
-            map.vuelta();
-            transform.DOMove(new Vector3(0, transform.position.y, 0), 1f);
+            if (levelController != null)
+            {
+                levelController.ActivarPalanca(transform);
+            }
         }
-
     }
-    
-    void FixedUpdate()
+
+    private void FixedUpdate()
     {
         rb.AddForce(Vector3.down * gravedad * rb.mass);
     }
-    void Camera()
+
+    private void DetectarPalanca()
     {
-        Vector2 CameraInput = pi.actions["Look"].ReadValue<Vector2>();
-        float hor = CameraInput.x;
-        float vert = CameraInput.y;
+        if (camara == null || levelController == null || levelController.CurrentStage == null) return;
 
-        transform.Rotate(Vector3.up * hor * sencibilidad * Time.deltaTime);
+        StageConfig config = levelController.CurrentStage;
 
-        CamRotationY -= vert * sencibilidad * Time.deltaTime;
-        CamRotationY = Mathf.Clamp(CamRotationY, -80, 80);
-        
+        bool colisionPrevia = palancaCol;
 
-        camara.transform.position = cameraReference.transform.position;
-        camara.transform.rotation = transform.rotation * Quaternion.Euler(CamRotationY, 0f, 0f);
+        // Usa la distancia y la LayerMask definidas en la config del Stage
+        palancaCol = Physics.Raycast(
+            camara.transform.position,
+            camara.transform.forward,
+            config.interactDistance,
+            config.palancaLayer
+        );
 
+        Debug.DrawLine(
+            camara.transform.position,
+            camara.transform.position + (camara.transform.forward * config.interactDistance),
+            palancaCol ? Color.green : Color.red
+        );
+
+        if (colisionPrevia != palancaCol)
+        {
+            levelController.SetInteractUIVisible(palancaCol);
+        }
     }
 
-    void MOV()
+    private void InvertirGravedadPropia()
     {
-        Vector2 MovInput = pi.actions["Move"].ReadValue<Vector2>();
+        volteada = !volteada;
+        float angulo = volteada ? 180f : 0f;
+
+        gravedad = -gravedad;
+        transform.DORotate(new Vector3(0, 0, angulo), 0.8f);
+    }
+
+    private void ControlCamera()
+    {
+        Vector2 cameraInput = pi.actions["Look"].ReadValue<Vector2>();
+
+        transform.Rotate(Vector3.up * cameraInput.x * sencibilidad * Time.deltaTime);
+
+        CamRotationY -= cameraInput.y * sencibilidad * Time.deltaTime;
+        CamRotationY = Mathf.Clamp(CamRotationY, -80, 80);
+
+        if (camara != null && cameraReference != null)
+        {
+            camara.transform.position = cameraReference.transform.position;
+            camara.transform.rotation = transform.rotation * Quaternion.Euler(CamRotationY, 0f, 0f);
+        }
+    }
+
+    private void ControlMovement()
+    {
+        Vector2 movInput = pi.actions["Move"].ReadValue<Vector2>();
 
         Vector3 adelante = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
         Vector3 derecha = new Vector3(transform.right.x, 0f, transform.right.z).normalized;
 
-        Vector3 direccion = adelante * MovInput.y + derecha * MovInput.x;
+        Vector3 direccion = adelante * movInput.y + derecha * movInput.x;
 
         rb.velocity = new Vector3(direccion.x * speed, rb.velocity.y, direccion.z * speed);
     }
-
 }

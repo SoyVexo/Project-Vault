@@ -4,6 +4,8 @@ using UnityEngine;
 using DG.Tweening;
 
 public class Door : MonoBehaviour
+
+    //Puerta config
 { 
     [Header("Configs")]
     public Transform rejas;

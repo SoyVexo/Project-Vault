@@ -2,12 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using DG.Tweening;
 
 public class LevelController : MonoBehaviour
 {
     [Header("Configuración de Stages")]
     [SerializeField] private StageConfig[] stages;
     [SerializeField] private int currentStageIndex = 0;
+    public PlayerController player;
 
     public StageConfig CurrentStage
     {
@@ -62,6 +64,12 @@ public class LevelController : MonoBehaviour
         if (todosPulsados)
         {
             IsCurrentStageComplete = true; // Se bloquea permanentemente
+            player.PasadoPorlapuerta = false;
+            if (stages[currentStageIndex].map != null && stages[currentStageIndex].map.volteada)
+            {
+                stages[currentStageIndex].map.vuelta();
+            }
+
             print($"[Level] ¡Todos los botones activados simultáneamente! Stage completado.");
 
             // Abrir la puerta
@@ -82,6 +90,7 @@ public class LevelController : MonoBehaviour
         {
             if (IsCurrentStageComplete)
             {
+                player.PasadoPorlapuerta = true;
                 NextStage();
             }
             else
@@ -95,13 +104,47 @@ public class LevelController : MonoBehaviour
     {
         if (currentStageIndex < stages.Length - 1)
         {
+            // Guardamos la referencia del stage que estamos dejando atrás
+            // ANTES de mover el índice, para poder limpiarlo después.
+            StageConfig stageAnterior = stages[currentStageIndex];
+
             currentStageIndex++;
             InicializarStageActual();
             print($"[Level] Avanzando al Stage {currentStageIndex + 1}");
+
+            // Si ese stage está marcado para autodestruirse al avanzar, lo programamos.
+            if (stageAnterior != null && stageAnterior.eliminarAlAvanzar)
+            {
+                StartCoroutine(EliminarUbicacionAnterior(stageAnterior));
+            }
         }
         else
         {
             print("¡Has completado todos los niveles del juego!");
+        }
+    }
+
+    /// <summary>
+    /// Espera el tiempo configurado en el StageConfig y luego destruye la
+    /// habitación/ubicación anterior, verificando null en cada paso para
+    /// evitar errores si el objeto ya no existe o nunca fue asignado.
+    /// </summary>
+    private IEnumerator EliminarUbicacionAnterior(StageConfig stageAEliminar)
+    {
+        if (stageAEliminar == null) yield break;
+
+        float espera = Mathf.Max(0f, stageAEliminar.tiempoEsperaEliminar);
+        yield return new WaitForSeconds(espera);
+
+        // Puede que en el medio alguien ya lo haya destruido o desactivado el flag.
+        if (stageAEliminar.habitacionRoot != null)
+        {
+            print($"[Level] Eliminando ubicación anterior: {stageAEliminar.stageName}");
+            Destroy(stageAEliminar.habitacionRoot);
+        }
+        else
+        {
+            print($"[Level] No se eliminó nada: '{stageAEliminar.stageName}' no tiene habitacionRoot asignado o ya fue destruido.");
         }
     }
 
@@ -113,10 +156,28 @@ public class LevelController : MonoBehaviour
     /// Acepta cualquier argumento enviado por el PlayerController (ej. objeto, bool o id)
     /// para evitar el error de sobrecarga CS1501.
     /// </summary>
-    public void ActivarPalanca(object objetoOEstado = null)
+    /// <summary>
+    /// Acciona la palanca de UNA habitación específica. Recibe explícitamente
+    /// a qué MapRoating pertenece (y opcionalmente a dónde mover al jugador),
+    /// en vez de asumir que siempre es la del stage "actual". Así, activar
+    /// una palanca nunca afecta a otra habitación por error.
+    /// </summary>
+    public void ActivarPalanca(MapRoating habitacionDeEstaPalanca, Transform posicionAlVoltear = null)
     {
-        print($"[LevelController] Palanca accionada con el valor: {objetoOEstado}");
-        stages[currentStageIndex].map.vuelta();
+        if (habitacionDeEstaPalanca == null)
+        {
+            Debug.LogWarning("[LevelController] Se llamó a ActivarPalanca sin asignar a qué habitación pertenece.");
+            return;
+        }
+
+        print($"[LevelController] Palanca accionada para la habitación: {habitacionDeEstaPalanca.gameObject.name}");
+
+        habitacionDeEstaPalanca.vuelta();
+
+        if (posicionAlVoltear != null)
+        {
+            player.transform.DOMove(posicionAlVoltear.position, 1f);
+        }
     }
 
     /// <summary>

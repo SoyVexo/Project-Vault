@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.tripolygon.umodeler-x": {
-      "version": "file:C:/UnityProyects/Project Vault/UModelerXPackages/com.tripolygon.umodeler-x-1.2.2.tgz",
+      "version": "file:C:/Users/rober/Documents/UnityProyects/Project-Vault/UModelerXPackages/com.tripolygon.umodeler-x-1.4.0+f2.tgz",
       "depth": 0,
       "source": "local-tarball",
       "dependencies": {}

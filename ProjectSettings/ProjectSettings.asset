@@ -822,10 +822,10 @@ PlayerSettings:
     PS5: DOTWEEN
     QNX: DOTWEEN
     Stadia: DOTWEEN
-    Standalone: DOTWEEN
+    Standalone: DOTWEEN;UMX_BURST_PACKAGE
     VisionOS: DOTWEEN
     WebGL: DOTWEEN
-    Windows Store Apps: DOTWEEN
+    Windows Store Apps: DOTWEEN;UMX_BURST_PACKAGE
     XboxOne: DOTWEEN
     iPhone: DOTWEEN
     tvOS: DOTWEEN

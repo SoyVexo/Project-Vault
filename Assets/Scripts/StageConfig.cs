@@ -24,5 +24,17 @@ public class StageConfig
     public CanvasGroup interactPanelCanvasGroup;
     public TextMeshProUGUI intPanelText;
 
+    public Transform position_voltead;
+
+    [Header("Limpieza al avanzar de stage")]
+    [Tooltip("Si está activo, al pasar al siguiente stage se destruirá 'habitacionRoot' tras el tiempo de espera.")]
+    public bool eliminarAlAvanzar = false;
+
+    [Tooltip("Objeto raíz que representa esta habitación/ubicación (debería contener botones, puerta, paredes, etc. como hijos).")]
+    public GameObject habitacionRoot;
+
+    [Tooltip("Segundos de espera antes de eliminar la habitación anterior (recomendado 1-2).")]
+    public float tiempoEsperaEliminar = 1.5f;
+
     [HideInInspector] public bool palancaPresionada;
 }

@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     [Header("Cámara")]
     public Camera camara;
     public GameObject cameraReference;
+    public bool PasadoPorlapuerta = true;
     public float sencibilidad = 10f;
     private float CamRotationY;
 
@@ -48,11 +49,14 @@ public class PlayerController : MonoBehaviour
         }
 
         // Interacción con elementos del Stage actual
-        if (palancaCol && pi.actions["Interact"].WasPressedThisFrame())
+        if (palancaCol && pi.actions["Interact"].WasPressedThisFrame() && PasadoPorlapuerta)
         {
-            if (levelController != null)
+            if (levelController != null && levelController.CurrentStage != null)
             {
-                levelController.ActivarPalanca(transform);
+                levelController.ActivarPalanca(
+                    levelController.CurrentStage.map,
+                    levelController.CurrentStage.position_voltead
+                );
             }
         }
     }

@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Project Vault.sln"
+    "dotnet.defaultSolution": "Project-Vault.sln"
 }
